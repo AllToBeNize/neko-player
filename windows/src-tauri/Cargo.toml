@@ -1,0 +1,29 @@
+[package]
+name = "neko-player"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", features = ["json", "cookies", "stream", "multipart"] }
+axum = "0.8"
+url = "2"
+uuid = { version = "1", features = ["v4"] }
+qrcode = { version = "0.14", default-features = false, features = ["svg"] }
+keyring = { version = "3", features = ["windows-native"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+regex = "1"
+md5 = "0.7"
+base64 = "0.22"
+flate2 = "1"
+
+[profile.dev]
+debug = 0
+incremental = true
