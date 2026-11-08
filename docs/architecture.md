@@ -171,3 +171,7 @@ track-versions.ts 生成全新 version:UUID 歌曲，显式挑选可复用字段
 SourcePicker 发出 version(candidate,name,playlistId) 事件，App 验证目标歌单并以根 parentId+BVID 拦截同歌单重复版本，保存后打开目标歌单；现有手动换源行为保留。版本数据随曲库与队列原有 JSON/SQLite 存储，无新增平台请求或数据库迁移。
 
 MATCH_VERSION=4 对有 version 的曲目使用 baseTitle 比较歌名，用 referenceTitle/name 区分期望版本；已有不一致版本惩罚之外，对缺失目标版本特征的候选降权。具体乐器明确时，cover 和通用演奏标签不作为额外必需条件。sourceSearchKeyword 用基础歌名加提取的版本词构造搜索；人工改名不会丢失保存时识别到的演奏类型。独立版本标记 manual，升级评分不自动换源。
+
+## 统一设置入口
+
+SettingsPanel 是受控组件，通过事件更新 App 原有主题/队列/音量默认偏好；持久化仍分别使用 library.preferences 与 playback_state，不在组件内另建存储。账号区域不再直接弹账号或登录，改为统一设置，未登录用户在设置进入官方登录流程。底部当前歌曲更多按钮使用 cursorId 定位重复队列项并复用上下文菜单。
