@@ -1,7 +1,7 @@
 import type { TrackVersion } from './track-versions'
 import { artistAliases,titleAliases } from './music-names'
 export { sourceSearchKeyword } from './music-names'
-export const MATCH_VERSION=4
+export const MATCH_VERSION=5
 export type MusicItem = {id:string; title:string; artist:string; duration?:string; durationMs?:number; bvid?:string; cover?:string; source:string;version?:TrackVersion}
 export type Candidate = MusicItem & {score:number; reason:string;artistScore:number;titleScore:number;durationScore:number;officialHint?:boolean}
 
@@ -18,7 +18,7 @@ const versions:{pattern:RegExp;label:string;penalty:number;generic?:boolean}[]=[
  ...[/钢琴|鋼琴|\bpiano\b|ピアノ/i,/吉他|指弹|指彈|\bguitar\b|ギター/i,/小提琴|\bviolin\b|バイオリン|ヴァイオリン/i,/大提琴|\bcello\b/i,/萨克斯|薩克斯|\bsax(?:ophone)?\b/i,/口琴|\bharmonica\b/i,/古筝|古箏/i,/二胡/i,/琵琶/i,/扬琴|揚琴/i,/竖琴|豎琴|\bharp\b/i,/架子鼓|\bdrums?\b|叩いてみた/i,/八音盒|music\s*box/i,/手风琴|手風琴|\baccordion\b/i,/长笛|長笛|\bflute\b/i].map(pattern=>({pattern,label:'乐器改编',penalty:.32})),
  {pattern:/弾いてみた|演奏してみた/i,label:'乐器改编',penalty:.32,generic:true},
  {pattern:/混音|remix|加速|降调|升调|变速|slowed|sped\s*up/i,label:'混音或变速',penalty:.23},
- {pattern:/合集|串烧|歌单|小时|循环|medley|playlist|compilation/i,label:'合集版本',penalty:.23}
+ {pattern:/合集|串烧|串燒|精选集|精選集|全专辑|全專輯|\bmedley\b|\bcompilation\b|\d+\s*小时\s*(?:循环|连播)|\d+\s*hours?\s*(?:loop|mix)/i,label:'合集版本',penalty:.23}
 ]
 export function versionSearchTerms(title:string){const instrument=versions.some(v=>v.label==='乐器改编'&&!v.generic&&v.pattern.test(title));return [...new Set(versions.filter(v=>!instrument||!v.generic&&v.label!=='翻唱版本').flatMap(v=>title.match(v.pattern)?.[0]||[]))]}
 const official=/官方(?:MV|音源|音乐|音乐录影带|视频)?|\bofficial\b|オフィシャル|公式(?:MV|音源|ミュージック|映像|動画)?/i

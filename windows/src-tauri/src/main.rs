@@ -1,4 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod lyric_match;
 mod kugou;
 mod web_login;
 mod search_response;

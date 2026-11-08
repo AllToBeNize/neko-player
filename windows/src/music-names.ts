@@ -47,10 +47,27 @@ export function titleAliases(value:string):{text:string;kind:'original'|'bracket
  for(const item of [...variants]){const english=englishLoanword(item.text);if(english)variants.push({text:english,kind:'loanword'})}
  return variants
 }
+// Subtitle translations are useful ranking aliases, but over-constrain platform search.
+export function preferredSearchTitle(value:string):string{
+ const normalized=value.normalize('NFKC').trim()
+ const version=/钢琴|鋼琴|吉他|小提琴|大提琴|伴奏|人声|现场|演唱会|翻唱|混音|加速|变速|降调|升调|原版|ピアノ|ギター|ライブ|\blive\b|\bcover\b|\bremix\b|\bpiano\b|\bguitar\b|\bacoustic\b|\binstrumental\b|\bversion\b|\bver\.?|\bfeat\.?|\boff\s*vocal\b/i
+ const cleaned=normalized.replace(/\(([^)]+)\)/g,(whole,content:string)=>version.test(content)?whole:'').replace(/\s+/g,' ').trim()
+ return cleaned||normalized
+}
 export function sourceSearchKeyword(song:{artist:string;title:string;version?:TrackVersion},english=true):string{
- const baseTitle=song.version?.baseTitle||song.title
- const variants=titleAliases(baseTitle),alias=variants.find(v=>v.kind==='loanword')
- const title=english&&alias?alias.text:baseTitle
+ const baseTitle=preferredSearchTitle(song.version?.baseTitle||song.title)
+ const alias=englishLoanword(baseTitle)
+ const title=english&&alias?alias:baseTitle
  const intent=song.version?(song.version.searchTerms.length?song.version.searchTerms.join(' '):song.version.name):''
  return [song.artist,title,intent].map(s=>s.normalize('NFKC').replace(/\s+/g,' ').trim()).filter(Boolean).join(' ')
+}
+
+export function sourceSearchQueries(song:{artist:string;title:string;version?:TrackVersion}):string[]{
+ const base=preferredSearchTitle(song.version?.baseTitle||song.title)
+ const artists=artistAliases(song.artist).filter(name=>name!==song.artist).slice(0,2)
+ const withName=(artist:string,title:string)=>sourceSearchKeyword({...song,artist,title,version:song.version?{...song.version,baseTitle:title}:undefined})
+ const queries=[sourceSearchKeyword(song),sourceSearchKeyword(song,false),...artists.map(name=>withName(name,base)),withName('',base)]
+ const suffix=Array.from(base.matchAll(/\([^)]*\)/g),m=>m[0]).join(' ')
+ for(const alias of titleAliases(song.version?.baseTitle||song.title)){const name=preferredSearchTitle(alias.text);if(name&&name!==base)queries.push(withName(song.artist,[name,suffix].filter(Boolean).join(' ')))}
+ const seen=new Set<string>();return queries.map(q=>q.trim()).filter(q=>{const key=q.toLowerCase().replace(/\s+/g,' ');if(!key||seen.has(key))return false;seen.add(key);return true}).slice(0,5)
 }

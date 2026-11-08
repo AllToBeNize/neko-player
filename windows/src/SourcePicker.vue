@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+import { searchSourceCandidates } from './source-search'
 import { Search, Play, Check, LoaderCircle, Radio, ListPlus, ArrowLeft } from 'lucide-vue-next'
 import { suggestVersionName } from './track-versions'
 import { rankCandidates, sourceSearchKeyword, type MusicItem, type Candidate } from './matching'
 const props=defineProps<{song:MusicItem&{candidates?:Candidate[]};destinations:{id:string;name:string}[];defaultDestination:string}>()
-const emit=defineEmits<{choose:[candidate:Candidate,candidates:Candidate[]];preview:[candidate:Candidate];blocked:[message:string,keyword:string];verify:[];version:[candidate:Candidate,name:string,playlistId:string]}>()
+const emit=defineEmits<{choose:[candidate:Candidate,candidates:Candidate[]];preview:[candidate:Candidate];blocked:[message:string,keyword:string];verify:[];scores:[items:Candidate[]];version:[candidate:Candidate,name:string,playlistId:string]}>()
 const keyword=ref(sourceSearchKeyword(props.song)),candidates=ref<Candidate[]>([]),chosen=ref(''),busy=ref(false),message=ref('')
 const versionCandidate=ref<Candidate|null>(null),versionName=ref(''),destination=ref(props.defaultDestination)
 function beginVersion(candidate:Candidate){versionCandidate.value=candidate;versionName.value=suggestVersionName(candidate.title);destination.value=props.defaultDestination||props.destinations[0]?.id||''}
 function saveVersion(){if(versionCandidate.value&&versionName.value.trim()&&destination.value)emit('version',versionCandidate.value,versionName.value.trim(),destination.value)}
 let generation=0,alive=true
-function update(items:MusicItem[]){candidates.value=rankCandidates(props.song,items).ranked;chosen.value=candidates.value.some(t=>t.bvid===props.song.bvid)?props.song.bvid!:candidates.value[0]?.bvid||''}
-async function search(){const run=++generation;busy.value=true;message.value='';try{const items=await invoke<MusicItem[]>('search',{keyword:keyword.value});if(alive&&run===generation){update(items);if(!items.length)message.value='没有找到候选，试试调整歌手或歌名。'}}catch(e){if(alive&&run===generation){message.value=String(e);if(message.value.includes('BILIBILI_VERIFICATION_REQUIRED'))emit('blocked',message.value,keyword.value)}}finally{if(alive&&run===generation)busy.value=false}}
+function update(items:MusicItem[]){candidates.value=rankCandidates(props.song,items).ranked;emit('scores',candidates.value);chosen.value=candidates.value.some(t=>t.bvid===props.song.bvid)?props.song.bvid!:candidates.value[0]?.bvid||''}
+async function search(){const run=++generation;busy.value=true;message.value='';try{const items=await searchSourceCandidates(props.song,{keyword:keyword.value.trim()===sourceSearchKeyword(props.song)?undefined:keyword.value,active:()=>alive&&run===generation,progress:(index,total)=>{message.value=`正在自动匹配：搜索策略 ${index}/${total}`}});if(alive&&run===generation){update(items);message.value=items.length?'':'已自动尝试原名、别名和歌手组合，暂未找到候选。'}}catch(e){if(alive&&run===generation){message.value=String(e);if(message.value.includes('BILIBILI_VERIFICATION_REQUIRED'))emit('blocked',message.value,keyword.value)}}finally{if(alive&&run===generation)busy.value=false}}
 function confirm(){const item=candidates.value.find(t=>t.bvid===chosen.value);if(item)emit('choose',item,candidates.value)}
 onMounted(()=>{if(props.song.candidates?.length)update(props.song.candidates);else void search()})
 onUnmounted(()=>{alive=false;generation++})
